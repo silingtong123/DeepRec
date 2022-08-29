@@ -27,6 +27,7 @@ constexpr int MAX_TRY_COUNT = 10;
 
 Tensor CreateTensor(const TensorInfo& tensor_info) {
   auto real_ts = tensor_info.tensor_shape();
+  
   // set batch_size to 1 when the default value is -1
   if (real_ts.dim(0).size() < 0) {
     real_ts.mutable_dim(0)->set_size(1);
@@ -74,8 +75,64 @@ Tensor CreateTensor(const TensorInfo& tensor_info) {
 Call CreateWarmupParams(SignatureDef& sig_def) {
   Call call;
   for (auto it : sig_def.inputs()) {
-    const auto& tensor = CreateTensor(it.second);
-    call.request.inputs.emplace_back(it.second.name(), tensor);
+        if (it.second.has_coo_sparse()) {
+          const TensorInfo_CooSparse& coo_sparse = it.second.coo_sparse();
+          const string& indices_tensor_name = coo_sparse.indices_tensor_name();
+          const string& values_tensor_name = coo_sparse.values_tensor_name();
+          const string& dense_shape_tensor_name = coo_sparse.dense_shape_tensor_name(); 
+          // auto vec_dim = tensor.shape().dim_sizes();
+          // auto nums = tensor.shape().num_elements();
+          // auto data = tensor.flat<int64>().data();
+          auto real_ts = it.second.tensor_shape();
+          if (real_ts.dim(0).size() < 0) {
+            real_ts.mutable_dim(0)->set_size(1);
+          }
+          auto indices_shape = TensorShape();
+          indices_shape.AddDim(real_ts.dim(0).size() * real_ts.dim(1).size());
+          indices_shape.AddDim(2);          
+          Tensor indices_tensor(it.second.dtype(), indices_shape);          
+          // LOG(INFO)<<"input_name = "<<alias<<", dim_0 = "<<vec_dim[0]<<", dim_1 = "<<vec_dim[1]<<"num_elements = "<<nums;
+
+          // auto indices_shape = TensorShape();
+          
+          // indices_shape.AddDim(nums);
+          // indices_shape.AddDim(2);
+          // Tensor indices_tensor =  tensorflow::Tensor(tensorflow::DT_INT64, indices_shape);
+          auto indices_tensor_mat = indices_tensor.matrix<int64>();
+          int idx = 0;
+          for(int i =0; i<real_ts.dim(0).size(); ++i){
+              for(int j = 0; j < real_ts.dim(1).size();  ++j){
+                indices_tensor_mat(idx,0) = i;
+                indices_tensor_mat(idx,1) = j;
+                ++idx;
+              }
+          }
+
+          call.request.inputs.emplace_back(std::make_pair( indices_tensor_name, indices_tensor));
+          
+          auto values_shape = TensorShape();
+          values_shape.AddDim(real_ts.dim(1).size());
+          Tensor values_tensor =  tensorflow::Tensor(tensorflow::DT_INT64, values_shape);
+          auto flat = values_tensor.flat<int64>();
+          for(int i=0; i< flat.size();++i){
+                flat(i) = 1;
+          }
+          // auto  values_tensor_data = values_tensor.flat<int64>().data();
+          // std::memcpy(values_tensor_data, data, sizeof(int64) * nums);
+          call.request.inputs.emplace_back(std::make_pair( values_tensor_name, values_tensor));             
+
+          auto dense_shape_tensor_shape = TensorShape();
+          dense_shape_tensor_shape.AddDim(2);
+          Tensor dense_shape_tensor =  tensorflow::Tensor(tensorflow::DT_INT64, dense_shape_tensor_shape);
+          auto idense_shape_tensor_vec = dense_shape_tensor.vec<int64>();
+          idense_shape_tensor_vec(0) = real_ts.dim(0).size();
+          idense_shape_tensor_vec(1) = real_ts.dim(1).size();
+          call.request.inputs.emplace_back(std::make_pair( dense_shape_tensor_name, dense_shape_tensor));  
+    } else {
+      LOG(INFO)<<"tensor ----name ->"<<it.second.name();
+      const auto& tensor = CreateTensor(it.second);
+      call.request.inputs.emplace_back(it.second.name(), tensor);
+    }  
   }
 
   for (auto it : sig_def.outputs()) {
