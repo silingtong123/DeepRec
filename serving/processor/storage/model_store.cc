@@ -96,7 +96,7 @@ Status ModelStore::GetFullModelVersion(Version& version) {
   std::vector<string> file_names;
   TF_RETURN_IF_ERROR(file_system_->GetChildren(checkpoint_dir_,
         &file_names));
-
+  int tmp_version = -1;
   for (auto fname : file_names) {
     if (IsIncrementalCkptPath(fname) ||
         !IsMetaFileName(fname)) {
@@ -104,11 +104,13 @@ Status ModelStore::GetFullModelVersion(Version& version) {
     }
 
     auto v = ParseMetaFileName(fname);
-    if (v > version.full_ckpt_version) {
+    if (v > tmp_version) {
       version.full_ckpt_name = ParseCkptFileName(checkpoint_dir_, fname);
-      version.full_ckpt_version = v;
+      tmp_version = v;
     }
   }
+  if (tmp_version != version.full_ckpt_version)
+  version.full_ckpt_version = tmp_version;
   return Status::OK();
 }
 

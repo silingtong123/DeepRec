@@ -453,6 +453,7 @@ Status ModelSessionMgr::CreateModelSession(
     session = serving_session_->GetSession();
     restore_op_name =
         meta_graph_def_.incr_saver_def().restore_op_name();
+    LOG(INFO)<<"restore ckpt model. "<<incr_ckpt_name;
   } else {
     TF_RETURN_IF_ERROR(CreateSessionGroup(&session_group, config));
     session = session_group->GetLeaderSession();
@@ -463,7 +464,10 @@ Status ModelSessionMgr::CreateModelSession(
       incr_ckpt_name, version.savedmodel_dir.c_str(),
       restore_op_name, filename_tensor_name,
       incr_filename_tensor_name, asset_file_defs_, session));
-
+  if (is_incr_ckpt) {
+    LOG(INFO)<<"restore ckpt model sucess. "<<incr_ckpt_name;
+  }
+  
   if (util::HasMainOp(meta_graph_def_)) {
     TF_RETURN_IF_ERROR(util::RunMainOp(*run_options_,
         version.savedmodel_dir.c_str(),
