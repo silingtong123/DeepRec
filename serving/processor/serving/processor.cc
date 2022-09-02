@@ -32,7 +32,6 @@ int process(void* model_buf, const void* input_data, int input_size,
     *output_size = model_str.length();
     return 200;
   }
-
   auto status = model->Predict(input_data, input_size,
       output_data, output_size);
   if (!status.ok()) {

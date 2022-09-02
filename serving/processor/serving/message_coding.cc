@@ -14,7 +14,6 @@ Status ProtoBufParser::ParseRequestFromBuf(
     const SignatureInfo* signature_info) {
   eas::PredictRequest request;
   request.ParseFromArray(input_data, input_size);
-
   for (auto& input : request.inputs()) {
     if (signature_info->input_key_idx.find(input.first) ==
         signature_info->input_key_idx.end()) {

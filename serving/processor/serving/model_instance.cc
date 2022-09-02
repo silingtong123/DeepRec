@@ -107,7 +107,6 @@ Call CreateWarmupParams(SignatureDef& sig_def) {
                 ++idx;
               }
           }
-
           call.request.inputs.emplace_back(std::make_pair( indices_tensor_name, indices_tensor));
           
           auto values_shape = TensorShape();
@@ -127,9 +126,8 @@ Call CreateWarmupParams(SignatureDef& sig_def) {
           auto idense_shape_tensor_vec = dense_shape_tensor.vec<int64>();
           idense_shape_tensor_vec(0) = real_ts.dim(0).size();
           idense_shape_tensor_vec(1) = real_ts.dim(1).size();
-          call.request.inputs.emplace_back(std::make_pair( dense_shape_tensor_name, dense_shape_tensor));  
+          call.request.inputs.emplace_back(std::make_pair( dense_shape_tensor_name, dense_shape_tensor));
     } else {
-      LOG(INFO)<<"tensor ----name ->"<<it.second.name();
       const auto& tensor = CreateTensor(it.second);
       call.request.inputs.emplace_back(it.second.name(), tensor);
     }  
@@ -915,7 +913,8 @@ void ModelUpdater::WorkLoop() {
 
       // New model directory is generated or the version step is greater than the pre.
       Version pre_version = GetVersion();
-      bool new_full_ckpt_generated = version.IsValid() &&
+      LOG(INFO)<<"pre.full_ckpt_name = "<<pre_version.full_ckpt_name<<", lastest.full_ckpt_name = "<<version.full_ckpt_name;
+      bool new_full_ckpt_generated = version.IsValid() && (pre_version.full_ckpt_name != version.full_ckpt_name) &&
           (pre_version.full_ckpt_name != version.full_ckpt_name);
       if (new_full_ckpt_generated || pre_version < version) {
         LOG(INFO) << "Start to load new version model: " << version.DebugString();
