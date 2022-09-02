@@ -4,7 +4,6 @@
 #include "serving/processor/serving/model_message.h"
 #include "serving/processor/serving/message_coding.h"
 #include "tensorflow/core/framework/tensor.h"
-
 namespace tensorflow {
 namespace processor {
 
@@ -31,7 +30,6 @@ Status Model::Init(const char* model_config) {
   parser_ = ParserFactory::GetInstance(config->serialize_protocol,
       4);
   impl_ = ModelImplFactory::Create(config);
-
   return impl_->Init();
 }
 
@@ -43,7 +41,6 @@ Status Model::Predict(const void* input_data, int input_size,
   if (!status.ok()) {
     return status;
   }
-
   parser_->ParseResponseToBuf(call, output_data, output_size);
   return Status::OK();
 }

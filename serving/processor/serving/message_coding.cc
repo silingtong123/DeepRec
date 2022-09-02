@@ -9,10 +9,9 @@ ProtoBufParser::ProtoBufParser(int thread_num) {
 }
 
 Status ProtoBufParser::ParseRequestFromBuf(const void* input_data,
-    int input_size, Call& call) {
+    int input_size, Call& call) {   
   eas::PredictRequest request;
   request.ParseFromArray(input_data, input_size);
-
   for (auto& input : request.inputs()) {
     call.request.inputs.emplace_back(input.first, util::Proto2Tensor(input.second));
   }

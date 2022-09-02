@@ -37,6 +37,56 @@ std::string ParseCkptFileName(const std::string& ckpt_dir,
   return io::JoinPath(ckpt_dir, prefix);
 }
 
+int64 ParseMetaFileName(const std::string& ckpt_dir, const std::string& fname, FileSystem* file_system) {
+  auto base_name = io::Basename(fname);
+  auto pos = base_name.rfind('.');
+  if (pos == StringPiece::npos)
+    return 0;
+  auto partial_name = StringPiece(base_name.data(), pos);
+  std::string tmp_name = fname.substr(0,fname.rfind('.'));
+  std::string datafile = tmp_name +".data-00000-of-00001";
+  std::string indexfile = tmp_name +".index";
+  std::string metafile = tmp_name +".meta";
+  const string datafile_path =
+      io::JoinPath(ckpt_dir, datafile);
+  const string indexfile_path =
+      io::JoinPath(ckpt_dir, indexfile);
+  const string metafile_path =
+      io::JoinPath(ckpt_dir, metafile);      
+  if (!file_system->FileExists(datafile_path).ok()) {
+     LOG(INFO)<<"Warning msg: "<<datafile_path<<" not exist.";
+     return 0;
+  } else {
+     LOG(INFO)<<" datafile_path = "<<datafile_path<<" is exist.";
+  }
+
+  if (!file_system->FileExists(indexfile_path).ok()) {
+     LOG(INFO)<<"Warning msg: "<<indexfile_path<<" not exist.";
+     return 0;
+  }  else {
+     LOG(INFO)<<" indexfile_path = "<<indexfile_path<<" is exist.";
+  }
+
+  if (!file_system->FileExists(metafile_path).ok()) {
+     LOG(INFO)<<"Warning msg: "<<metafile_path<<" not exist.";
+     return 0;
+  }  else {
+     LOG(INFO)<<" metafile_path = "<<metafile_path<<" is exist.";
+  }
+
+  pos = partial_name.rfind('-');
+  if (pos == StringPiece::npos)
+    return 0;
+  
+  auto id = StringPiece(partial_name.data() + pos + 1,
+      partial_name.size() - (pos + 1));
+
+  int64 ret = 0;
+  strings::safe_strto64(id, &ret);
+  return ret;
+}
+
+
 int64 ParseMetaFileName(const std::string& fname) {
   auto base_name = io::Basename(fname);
   auto pos = base_name.rfind('.');
@@ -102,15 +152,17 @@ Status ModelStore::GetFullModelVersion(Version& version) {
         !IsMetaFileName(fname)) {
       continue;
     }
-
-    auto v = ParseMetaFileName(fname);
-    if (v > tmp_version) {
+  //  auto v = ParseMetaFileName(fname);
+    auto v = ParseMetaFileName(checkpoint_dir_ , fname, file_system_);
+    if ((v > 0) && (v > tmp_version)) {
       version.full_ckpt_name = ParseCkptFileName(checkpoint_dir_, fname);
       tmp_version = v;
     }
   }
-  if (tmp_version != version.full_ckpt_version)
-  version.full_ckpt_version = tmp_version;
+  if (tmp_version != -1 && tmp_version != version.full_ckpt_version) {
+       version.full_ckpt_version = tmp_version;
+  }
+  
   return Status::OK();
 }
 
