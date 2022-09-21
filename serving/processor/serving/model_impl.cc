@@ -44,5 +44,8 @@ const SignatureInfo* SavedModelImpl::GetSignatureInfo() {
   return instance_mgr_->GetSignatureInfo();
 }
 
+int SavedModelImpl::Update() {
+  return instance_mgr_->Update();
+}
 } // processor
 } // tensorflow

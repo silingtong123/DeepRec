@@ -23,6 +23,14 @@ void* initialize(const char* model_entry, const char* model_config,
   return model;
 }
 
+int update(void* model_buf){
+  if (model_buf == nullptr) {
+     return -1;
+  }
+  auto model = static_cast<tensorflow::processor::Model*>(model_buf);
+  return model->Update();
+}
+
 int process(void* model_buf, const void* input_data, int input_size,
             void** output_data, int* output_size) {
   auto model = static_cast<tensorflow::processor::Model*>(model_buf);

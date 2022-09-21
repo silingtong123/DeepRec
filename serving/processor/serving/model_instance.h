@@ -129,7 +129,7 @@ class IModelInstanceMgr {
   virtual Status Predict(Request& req, Response& resp) = 0;
   virtual Status GetServingModelInfo(ServingModelInfo& model_info) = 0;
   virtual Status Rollback() = 0;
-
+  virtual int Update() = 0;
   virtual std::string DebugString() = 0;
   virtual SignatureDef GetServingSignatureDef() = 0;
   virtual const SignatureInfo* GetSignatureInfo() = 0;
@@ -140,7 +140,7 @@ class ModelUpdater {
   ModelUpdater(ModelConfig* config);
   virtual ~ModelUpdater();
   void WorkLoop();
-
+  int  UpdateImpl();
  protected:
   virtual Status FullModelUpdate(const Version& version,
                                  ModelConfig* model_config) = 0;
@@ -168,7 +168,7 @@ class LocalSessionInstanceMgr : public ModelUpdater, public IModelInstanceMgr {
   Status Predict(Request& req, Response& resp) override;
   Status GetServingModelInfo(ServingModelInfo& model_info) override;
   Status Rollback() override;
-
+  int Update () override;
   std::string DebugString() override;
   SignatureDef GetServingSignatureDef() override;
   const SignatureInfo* GetSignatureInfo() override;
@@ -199,6 +199,7 @@ class RemoteSessionInstanceMgr : public ModelUpdater, public IModelInstanceMgr {
   std::string DebugString() override;
   SignatureDef GetServingSignatureDef() override;
   const SignatureInfo* GetSignatureInfo() override;
+  int Update () override;
 
  protected:
   Status FullModelUpdate(const Version& version,

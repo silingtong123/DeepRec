@@ -27,6 +27,7 @@ class ModelImpl {
   virtual std::string DebugString() = 0;
   virtual SignatureDef GetServingSignatureDef() = 0;
   virtual const SignatureInfo* GetSignatureInfo() = 0;
+  virtual int Update() = 0;
 };
 
 class FreezeSavedModelImpl : public ModelImpl {
@@ -60,6 +61,8 @@ class FreezeSavedModelImpl : public ModelImpl {
 
   const SignatureInfo* GetSignatureInfo() override {
     return nullptr;
+  int Update () override {
+    return 0;
   }
 };
 
@@ -72,6 +75,7 @@ class SavedModelImpl : public ModelImpl {
   Status Predict(Request& req, Response& resp) override;
   Status GetServingModelInfo(ServingModelInfo& model_info) override;
   Status Rollback() override;
+  int Update() override;
   std::string DebugString() override;
   SignatureDef GetServingSignatureDef() override;
   const SignatureInfo* GetSignatureInfo() override;
