@@ -33,6 +33,10 @@ Status Model::Init(const char* model_config) {
   return impl_->Init();
 }
 
+int Model::Update() {
+  return impl_->Update();
+}
+
 Status Model::Predict(const void* input_data, int input_size,
     void** output_data, int* output_size) {
   Call call;

@@ -36,5 +36,8 @@ std::string SavedModelImpl::DebugString() {
   return instance_mgr_->DebugString();
 }
 
+int SavedModelImpl::Update() {
+  return instance_mgr_->Update();
+}
 } // processor
 } // tensorflow

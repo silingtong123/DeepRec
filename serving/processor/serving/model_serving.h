@@ -30,6 +30,8 @@ class Model {
 
   Status Rollback();
 
+  int Update();
+
   std::string DebugString();
 
  private:

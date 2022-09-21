@@ -111,6 +111,8 @@ ModelStore::ModelStore(ModelConfig* config) :
     model_config_(config) {
   savedmodel_dir_ = config->savedmodel_dir;
   checkpoint_parent_dir_ = config->checkpoint_dir;
+  
+  LOG(INFO)<<"savedmodel_dir_ = "<<savedmodel_dir_<<" \n"<<checkpoint_parent_dir_<<"checkpoint_parent_dir_ = "<<checkpoint_parent_dir_;
 }
 
 Status ModelStore::Init() {

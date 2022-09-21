@@ -633,6 +633,10 @@ std::string LocalSessionInstanceMgr::DebugString() {
   return instance_->DebugString();
 }
 
+int LocalSessionInstanceMgr::Update() {
+  return UpdateImpl();
+}
+
 Status LocalSessionInstanceMgr::FullModelUpdate(
     const Version& version, ModelConfig* model_config) {
   return instance_->FullModelUpdate(
@@ -746,6 +750,10 @@ Status RemoteSessionInstanceMgr::FullModelUpdate(const Version& version,
       version, model_config);
 }
 
+int RemoteSessionInstanceMgr::Update() {
+  return UpdateImpl();
+}
+
 Status RemoteSessionInstanceMgr::DeltaModelUpdate(const Version& version,
                                         ModelConfig* model_config) {
   // NOTE: will initialize base_instance storage once after
@@ -795,7 +803,41 @@ Status ModelUpdater::ModelUpdate(const Version& version,
   }
 }
 
+int ModelUpdater::UpdateImpl() {
+    Version version;
+    auto status = model_store_->GetLatestVersion(version);
+    LOG(INFO) << "[Processor] ModelUpdater::Update get latest version: "
+              << version.DebugString();
+    if (!status.ok()) {
+      LOG(WARNING) << "[Processor] Not found full model or incremental model directory. "
+                   << "Please ignore this warning if you confirm it. "
+                   << "And we will try 60 seconds later. Warning message: "
+                   << status.error_message() << std::endl;
+    }
+
+    // New model directory is generated or the version step is greater than the pre.
+    Version pre_version = GetVersion();
+    LOG(INFO)<<"pre.full_ckpt_name = "<<pre_version.full_ckpt_name<<", lastest.full_ckpt_name = "<<version.full_ckpt_name;
+    bool new_full_ckpt_generated =
+        (pre_version.full_ckpt_name != version.full_ckpt_name) && !version.full_ckpt_name.empty();
+    if (new_full_ckpt_generated || pre_version < version) {
+      LOG(INFO)<<"model update .......";
+      auto status = ModelUpdate(version, model_config_,
+                                new_full_ckpt_generated);
+      if (!status.ok()) {
+        LOG(ERROR) << status.error_message() << std::endl;
+      }
+      LOG(INFO)<<"model update Success.......";
+      return 0; // model update Success
+    }
+    return 200;  // model update failed, beacuse no new verison
+}
+
 void ModelUpdater::WorkLoop() {
+  while(!is_stop_) { //skip ontime update model
+      sleep(_60_Seconds);
+  }
+
   while(!is_stop_) {
     Version version;
     auto status = model_store_->GetLatestVersion(version);

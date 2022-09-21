@@ -24,6 +24,7 @@ class ModelImpl {
   virtual Status GetServingModelInfo(ServingModelInfo& model_info) = 0;
   virtual Status Rollback() = 0;
   virtual std::string DebugString() = 0;
+  virtual int Update() = 0;
 };
 
 class FreezeSavedModelImpl : public ModelImpl {
@@ -49,6 +50,10 @@ class FreezeSavedModelImpl : public ModelImpl {
   std::string DebugString() override {
     return std::string();
   }
+
+  int Update () override {
+    return 0;
+  }
 };
 
 class SavedModelImpl : public ModelImpl {
@@ -60,6 +65,7 @@ class SavedModelImpl : public ModelImpl {
   Status Predict(Request& req, Response& resp) override;
   Status GetServingModelInfo(ServingModelInfo& model_info) override;
   Status Rollback() override;
+  int Update() override;
   std::string DebugString() override;
  
  private:
