@@ -264,18 +264,40 @@ void InternalGetSignatureInfo(
     SignatureInfo& signature_info) {
   int idx = 0;
   for (auto& iter : signature.second.inputs()) {
-    signature_info.input_key.emplace_back(iter.first);
-    signature_info.input_value_name.emplace_back(iter.second.name());
-    signature_info.input_key_idx[iter.first] = idx;
-    signature_info.input_value_name_idx[iter.second.name()] = idx;
-    ++idx;
+    if (iter.second.has_coo_sparse()) {
+      const TensorInfo_CooSparse& coo_sparse = iter.second.coo_sparse();
+      signature_info.input_key.emplace_back(coo_sparse.indices_tensor_name());
+      signature_info.input_value_name.emplace_back(coo_sparse.indices_tensor_name());
+      signature_info.input_key_idx[coo_sparse.indices_tensor_name()] = idx;
+      signature_info.input_value_name_idx[coo_sparse.indices_tensor_name()] = idx;
+      ++idx;
+
+      signature_info.input_key.emplace_back(coo_sparse.values_tensor_name());
+      signature_info.input_value_name.emplace_back(coo_sparse.values_tensor_name());
+      signature_info.input_key_idx[coo_sparse.values_tensor_name()] = idx;
+      signature_info.input_value_name_idx[coo_sparse.values_tensor_name()] = idx;
+      ++idx;
+
+      signature_info.input_key.emplace_back(coo_sparse.dense_shape_tensor_name());
+      signature_info.input_value_name.emplace_back(coo_sparse.dense_shape_tensor_name());
+      signature_info.input_key_idx[coo_sparse.dense_shape_tensor_name()] = idx;
+      signature_info.input_value_name_idx[coo_sparse.dense_shape_tensor_name()] = idx;
+      ++idx;
+
+    } else {
+      signature_info.input_key.emplace_back(iter.second.name());
+      signature_info.input_value_name.emplace_back(iter.second.name());
+      signature_info.input_key_idx[iter.second.name()] = idx;
+      signature_info.input_value_name_idx[iter.second.name()] = idx;
+      ++idx;
+    }
   }
 
   idx = 0;
   for (auto& iter : signature.second.outputs()) {
-    signature_info.output_key.emplace_back(iter.first);
+    signature_info.output_key.emplace_back(iter.second.name());
     signature_info.output_value_name.emplace_back(iter.second.name());
-    signature_info.output_key_idx[iter.first] = idx;
+    signature_info.output_key_idx[iter.second.name()] = idx;
     signature_info.output_value_name_idx[iter.second.name()] = idx;
     ++idx;
   }
@@ -713,6 +735,8 @@ SignatureDef LocalSessionInstanceMgr::GetServingSignatureDef() {
 
 const SignatureInfo* LocalSessionInstanceMgr::GetSignatureInfo() {
   return instance_->GetSignatureInfo();
+}
+
 int LocalSessionInstanceMgr::Update() {
   return UpdateImpl();
 }

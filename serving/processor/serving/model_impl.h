@@ -61,6 +61,7 @@ class FreezeSavedModelImpl : public ModelImpl {
 
   const SignatureInfo* GetSignatureInfo() override {
     return nullptr;
+  }
   int Update () override {
     return 0;
   }
