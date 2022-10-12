@@ -4,9 +4,12 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "serving/processor/serving/predict.pb.h"
+#include <future> 
+#include <thread>
 
 extern "C" {
-void* initialize(const char* model_entry, const char* model_config,
+
+void* initializeImpl(const char* model_entry, const char* model_config,
                  int* state) {
   auto model = new tensorflow::processor::Model(std::string(model_entry));
   auto status = model->Init(model_config);
@@ -23,7 +26,16 @@ void* initialize(const char* model_entry, const char* model_config,
   return model;
 }
 
-int update(void* model_buf){
+void* initialize(const char* model_entry, const char* model_config,
+                 int* state) {
+      std::packaged_task<void *(const char*, const char*, int*)> task(initializeImpl);
+      std::future<void *> future = task.get_future();
+      std::thread t(std::move(task), model_entry, model_config, state);
+      t.detach();
+      return future.get();     
+}
+
+int updateImpl(void* model_buf){
   if (model_buf == nullptr) {
      return -1;
   }
@@ -31,7 +43,15 @@ int update(void* model_buf){
   return model->Update();
 }
 
-int process(void* model_buf, const void* input_data, int input_size,
+int update(void* model_buf) {
+      std::packaged_task<int(void *)> task(updateImpl);
+      std::future<int> future = task.get_future();
+      std::thread t(std::move(task), model_buf);
+      t.detach();
+      return future.get();   
+}
+
+int processImpl(void* model_buf, const void* input_data, int input_size,
             void** output_data, int* output_size) {
   auto model = static_cast<tensorflow::processor::Model*>(model_buf);
   if (input_size == 0) {
@@ -52,6 +72,15 @@ int process(void* model_buf, const void* input_data, int input_size,
     return 500;
   }
   return 200;
+}
+
+int process(void* model_buf, const void* input_data, int input_size,
+            void** output_data, int* output_size) {
+      std::packaged_task<int(void *, const void*, int , void **, int *)> task(processImpl);
+      std::future<int> future = task.get_future();
+      std::thread t(std::move(task), model_buf, input_data, input_size, output_data, output_size);
+      t.detach();
+      return future.get();     
 }
 
 int batch_process(void* model_buf, const void* input_data[], int* input_size,
