@@ -23,7 +23,7 @@ limitations under the License.
 #endif  // GOOGLE_CUDA || TENSORFLOW_USE_ROCM
 
 #include "tensorflow/core/kernels/one_hot_op.h"
-
+#include <thread>
 #include <memory>
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -104,19 +104,43 @@ class OneHotOp : public OpKernel {
       for (int i = 0; i < axis; ++i) {
         prefix_dim_size *= indices_shape.dim_size(i);
       }
-      int64 suffix_dim_size = indices_shape.num_elements() / prefix_dim_size;
+      int64 dim0 =indices_shape.dim_size(0);
+      int64 other_tmp = prefix_dim_size/dim0;
 
-      // Split indices into matrix of size prefix_dim_size x suffix_dim_size
-      auto indices_t =
-          indices.shaped<TI, 2>({prefix_dim_size, suffix_dim_size});
-      // Split output into 3-Tensor of size:
-      //   prefix_dim_size x depth x suffix_dim_size.
-      auto output_t =
-          output->shaped<T, 3>({prefix_dim_size, depth_v, suffix_dim_size});
+        int64 suffix_dim_size = indices_shape.num_elements() / prefix_dim_size;
+//      //    output->shaped<T, 3>({prefix_dim_size, depth_v, suffix_dim_size});
+      const Tensor&  sub_1 =indices.Slice(0, dim0/2); 
+      const Tensor & sub_2 = indices.Slice(dim0/2 , dim0);
+      auto sub1 =sub_1.shaped<TI, 2>({dim0/2 * other_tmp, suffix_dim_size});
+      auto sub2 =sub_2.shaped<TI, 2>({(dim0 - dim0/2) * other_tmp, suffix_dim_size}); 
 
-      functor::OneHot<Device, T, TI>::Compute(ctx->eigen_device<Device>(),
-                                              indices_t, on_value_t,
-                                              off_value_t, &output_t);
+      auto out1_t = output->Slice(0, dim0/2).shaped<T, 3>({dim0/2 * other_tmp , depth_v, suffix_dim_size});
+      auto out2_t = output->Slice(dim0/2, dim0).shaped<T, 3>({(dim0 - dim0/2) * other_tmp, depth_v, suffix_dim_size});
+      std::thread t1 ([&](){
+        functor::OneHot<Device, T, TI>::Compute(ctx->eigen_device<Device>(),
+                                                sub1, on_value_t,
+                                                off_value_t, &out1_t);
+      });
+      std::thread t2 ([&](){
+        functor::OneHot<Device, T, TI>::Compute(ctx->eigen_device<Device>(),
+                                                sub2, on_value_t,
+                                                off_value_t, &out2_t);
+      });
+      t1.join();
+      t2.join();  
+
+//      LOG(INFO)<<"prefix_dim = "<<prefix_dim_size<<", suffix_dim_size = "<<suffix_dim_size<<", axis = "<<axis;
+//      // Split indices into matrix of size prefix_dim_size x suffix_dim_size
+//      auto indices_t =
+//          indices.shaped<TI, 2>({prefix_dim_size, suffix_dim_size});
+//      // Split output into 3-Tensor of size:
+//      //   prefix_dim_size x depth x suffix_dim_size.
+//      auto output_t =
+//          output->shaped<T, 3>({prefix_dim_size, depth_v, suffix_dim_size});
+//
+//      functor::OneHot<Device, T, TI>::Compute(ctx->eigen_device<Device>(),
+//                                              indices_t, on_value_t,
+//                                             off_value_t, &output_t);
     }
   }
 

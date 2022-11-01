@@ -11,6 +11,17 @@ package(
 # CPU only tests should use tf_py_test, GPU tests use cuda_py_test
 # Please avoid the py_tests and cuda_py_tests (plural) while we
 # fix the shared/overbroad dependencies.
+tf_py_test(
+    name = "zero_out_op_test",
+    size = "small",
+    srcs = ["zero_out_op_test.py"],
+    additional_deps = [
+        "//third_party/py/numpy",
+        "//tensorflow/python:array_ops",
+        "//tensorflow/python:client_testlib",
+    ],
+    tags = ["no_rocm"],
+)
 
 tf_py_test(
     name = "as_string_op_test",
