@@ -173,5 +173,20 @@ cc_library(
         "model_message",
         "model_instance",
         "predict_proto_cc",
+        "//tensorflow/stream_executor",
+        "//tensorflow/stream_executor:stream_executor_impl",
+        "//tensorflow/stream_executor:stream_executor_internal",
+        "//tensorflow/stream_executor:stream_executor_pimpl",
+        "//tensorflow/stream_executor:kernel_spec",
+        "//tensorflow/stream_executor:kernel",
+        "//tensorflow/stream_executor:scratch_allocator",
+        "//tensorflow/stream_executor:timer",
+        "//tensorflow/stream_executor/host:host_platform",
     ],
+
+    linkopts = [
+        "-Wl,-no-as-needed",
+        "-ltao_ops -L/usr/local/disc",
+    ],
+
 )

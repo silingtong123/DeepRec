@@ -10,7 +10,7 @@ load("//tensorflow/core/platform:default/build_config_root.bzl", "if_static")
 load("//tensorflow/stream_executor:build_defs.bzl", "stream_executor_friends")
 
 package(
-    default_visibility = [":friends"],
+    default_visibility = ["//visibility:public"],
     licenses = ["notice"],  # Apache 2.0
 )
 
@@ -170,6 +170,7 @@ cc_library(
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
@@ -181,6 +182,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
@@ -291,6 +293,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
@@ -494,6 +497,7 @@ cc_library(
         "//tensorflow/stream_executor/lib",
         "//tensorflow/stream_executor/platform",
     ],
+    alwayslink = 1,
 )
 
 tf_proto_library(
