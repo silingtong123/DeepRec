@@ -606,18 +606,18 @@ class StringSplitV2Op : public OpKernel {
   void Compute(OpKernelContext* ctx) override {
     const Tensor* input_tensor;
     OP_REQUIRES_OK(ctx, ctx->input("input", &input_tensor));
-    OP_REQUIRES(ctx, TensorShapeUtils::IsVector(input_tensor->shape()),
-                errors::InvalidArgument("input must be a vector, got shape: ",
-                                        input_tensor->shape().DebugString()));
+//    OP_REQUIRES(ctx, TensorShapeUtils::IsVector(input_tensor->shape()),
+//                errors::InvalidArgument("input must be a vector, got shape: ",
+//                                        input_tensor->shape().DebugString()));
 
     const auto input_vec = input_tensor->vec<string>();
     const int64 batch_size = input_vec.dimension(0);
 
     const Tensor* sep_tensor;
     OP_REQUIRES_OK(ctx, ctx->input("sep", &sep_tensor));
-    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(sep_tensor->shape()),
-                errors::InvalidArgument("sep must be a scalar, got shape: ",
-                                        sep_tensor->shape().DebugString()));
+//    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(sep_tensor->shape()),
+//                errors::InvalidArgument("sep must be a scalar, got shape: ",
+//                                        sep_tensor->shape().DebugString()));
     const auto sep_vec = sep_tensor->flat<string>();
     StringPiece sep(sep_vec(0));
 

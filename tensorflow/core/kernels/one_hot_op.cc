@@ -59,42 +59,67 @@ class OneHotOp : public OpKernel {
     const int output_dims = indices_dims + 1;
 
     // Preliminary validation of sizes.
-    OP_REQUIRES(
-        ctx, axis_ == -1 || (axis_ >= 0 && axis_ < output_dims),
-        errors::InvalidArgument("Expected axis to be -1 or between [0, ",
-                                output_dims, ").  But received: ", axis_));
-    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(depth.shape()),
-                errors::InvalidArgument("depth must be a scalar, but got: ",
-                                        depth.shape().DebugString()));
-    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(on_value.shape()),
-                errors::InvalidArgument("on_value must be a scalar, but got: ",
-                                        on_value.shape().DebugString()));
-    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(off_value.shape()),
-                errors::InvalidArgument("off_value must be a scalar, but got: ",
-                                        off_value.shape().DebugString()));
+//    OP_REQUIRES(
+//        ctx, axis_ == -1 || (axis_ >= 0 && axis_ < output_dims),
+//        errors::InvalidArgument("Expected axis to be -1 or between [0, ",
+//                                output_dims, ").  But received: ", axis_));
+//    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(depth.shape()),
+//                errors::InvalidArgument("depth must be a scalar, but got: ",
+//                                        depth.shape().DebugString()));
+//    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(on_value.shape()),
+//                errors::InvalidArgument("on_value must be a scalar, but got: ",
+//                                        on_value.shape().DebugString()));
+//    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(off_value.shape()),
+//                errors::InvalidArgument("off_value must be a scalar, but got: ",
+//                                        off_value.shape().DebugString()));
 
     const int axis = (axis_ == -1) ? indices_dims : axis_;
 
     // The one-hot dimension.
     const int32 depth_v = depth.scalar<int32>()();
-    OP_REQUIRES(
-        ctx, depth_v >= 0,
-        errors::InvalidArgument("depth must be non-negative, got: ", depth_v));
-    OP_REQUIRES(
-        ctx,
-        MultiplyWithoutOverflow(indices_shape.num_elements(), depth_v) >= 0,
-        errors::InvalidArgument("OneHot result would have shape ",
-                                indices_shape.DebugString(), " + [", depth_v,
-                                "], which exceeds 2**63 - 1 elements"));
+//    OP_REQUIRES(
+//        ctx, depth_v >= 0,
+//        errors::InvalidArgument("depth must be non-negative, got: ", depth_v));
+//    OP_REQUIRES(
+//        ctx,
+//        MultiplyWithoutOverflow(indices_shape.num_elements(), depth_v) >= 0,
+//        errors::InvalidArgument("OneHot result would have shape ",
+//                                indices_shape.DebugString(), " + [", depth_v,
+//                                "], which exceeds 2**63 - 1 elements"));
 
     TensorShape output_shape = indices_shape;
     output_shape.InsertDim(axis, depth_v);
 
     auto on_value_t = on_value.scalar<T>();
     auto off_value_t = off_value.scalar<T>();
-
+    auto t_on_val = on_value.flat<T>().data();
+    auto t_off_val = off_value.flat<T>().data();
     Tensor* output;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &output));
+    auto tmp_output = output->flat<T>().data();
+    std::fill(tmp_output, tmp_output+ output_shape.num_elements(), *t_off_val);
+    if (axis == indices_dims ) {
+        auto _input = indices.flat<TI>().data();
+        auto _output = output->flat<T>().data();
+	std::thread t1 ([&](){
+        for(int i = 0; i< indices_shape.num_elements()/2; ++i){
+	   if(*(_input+i) > 0 && *(_input+i) < depth_v ) {
+	    *(_output+ i *depth_v + *(_input+i)) = *t_on_val; 
+	   }
+	 }
+	});
+
+        std::thread t2 ([&](){
+        for(int i = indices_shape.num_elements()/2; i< indices_shape.num_elements(); ++i){
+           if(*(_input+i) > 0 && *(_input+i) < depth_v ) {
+            *(_output+ i *depth_v + *(_input+i)) = *t_on_val;
+           }
+         }
+        });
+        t1.join();
+        t2.join();
+        return;
+    }
 
     if (output_shape.num_elements() > 0) {
       // prefix_dim_size == # of elements before the axis
@@ -104,43 +129,20 @@ class OneHotOp : public OpKernel {
       for (int i = 0; i < axis; ++i) {
         prefix_dim_size *= indices_shape.dim_size(i);
       }
-      int64 dim0 =indices_shape.dim_size(0);
-      int64 other_tmp = prefix_dim_size/dim0;
 
         int64 suffix_dim_size = indices_shape.num_elements() / prefix_dim_size;
-//      //    output->shaped<T, 3>({prefix_dim_size, depth_v, suffix_dim_size});
-      const Tensor&  sub_1 =indices.Slice(0, dim0/2); 
-      const Tensor & sub_2 = indices.Slice(dim0/2 , dim0);
-      auto sub1 =sub_1.shaped<TI, 2>({dim0/2 * other_tmp, suffix_dim_size});
-      auto sub2 =sub_2.shaped<TI, 2>({(dim0 - dim0/2) * other_tmp, suffix_dim_size}); 
+     //  LOG(INFO)<<"prefix_dim = "<<prefix_dim_size<<", suffix_dim_size = "<<suffix_dim_size<<", axis = "<<axis;
+      // Split indices into matrix of size prefix_dim_size x suffix_dim_size
+      auto indices_t =
+          indices.shaped<TI, 2>({prefix_dim_size, suffix_dim_size});
+      // Split output into 3-Tensor of size:
+      //   prefix_dim_size x depth x suffix_dim_size.
+      auto output_t =
+          output->shaped<T, 3>({prefix_dim_size, depth_v, suffix_dim_size});
 
-      auto out1_t = output->Slice(0, dim0/2).shaped<T, 3>({dim0/2 * other_tmp , depth_v, suffix_dim_size});
-      auto out2_t = output->Slice(dim0/2, dim0).shaped<T, 3>({(dim0 - dim0/2) * other_tmp, depth_v, suffix_dim_size});
-      std::thread t1 ([&](){
-        functor::OneHot<Device, T, TI>::Compute(ctx->eigen_device<Device>(),
-                                                sub1, on_value_t,
-                                                off_value_t, &out1_t);
-      });
-      std::thread t2 ([&](){
-        functor::OneHot<Device, T, TI>::Compute(ctx->eigen_device<Device>(),
-                                                sub2, on_value_t,
-                                                off_value_t, &out2_t);
-      });
-      t1.join();
-      t2.join();  
-
-//      LOG(INFO)<<"prefix_dim = "<<prefix_dim_size<<", suffix_dim_size = "<<suffix_dim_size<<", axis = "<<axis;
-//      // Split indices into matrix of size prefix_dim_size x suffix_dim_size
-//      auto indices_t =
-//          indices.shaped<TI, 2>({prefix_dim_size, suffix_dim_size});
-//      // Split output into 3-Tensor of size:
-//      //   prefix_dim_size x depth x suffix_dim_size.
-//      auto output_t =
-//          output->shaped<T, 3>({prefix_dim_size, depth_v, suffix_dim_size});
-//
-//      functor::OneHot<Device, T, TI>::Compute(ctx->eigen_device<Device>(),
-//                                              indices_t, on_value_t,
-//                                             off_value_t, &output_t);
+      functor::OneHot<Device, T, TI>::Compute(ctx->eigen_device<Device>(),
+                                              indices_t, on_value_t,
+                                             off_value_t, &output_t);
     }
   }
 

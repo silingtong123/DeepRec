@@ -371,3 +371,7 @@ try-import %workspace%/.tf_configure.bazelrc
 
 # Put user-specific options in .bazelrc.user
 try-import %workspace%/.bazelrc.user
+
+# ote Cache
+# curl http://104.128.67.244:7070/status
+# build --remote_http_cache=http://104.128.67.244:7070
