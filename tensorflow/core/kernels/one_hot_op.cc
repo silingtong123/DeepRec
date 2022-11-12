@@ -101,6 +101,15 @@ class OneHotOp : public OpKernel {
     if (axis == indices_dims ) {
         auto _input = indices.flat<TI>().data();
         auto _output = output->flat<T>().data();
+	if (indices_shape.num_elements() < 1000 ){
+        for(int i = 0; i< indices_shape.num_elements(); ++i){
+           if(*(_input+i) > 0 && *(_input+i) < depth_v ) {
+            *(_output+ i *depth_v + *(_input+i)) = *t_on_val;
+           }
+         }
+	 return;
+	}
+
 	std::thread t1 ([&](){
         for(int i = 0; i< indices_shape.num_elements()/2; ++i){
 	   if(*(_input+i) > 0 && *(_input+i) < depth_v ) {
