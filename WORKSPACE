@@ -193,7 +193,7 @@ http_archive(
     build_file = "//third_party:systemtap-sdt.BUILD",
     sha256 = "0984ebe3162274988252ec35074021dc1e8420d87a8b35f437578562fce08781",
     strip_prefix = "systemtap-4.2",
-    urls = ["https://sourceware.org/systemtap/ftp/releases/systemtap-4.2.tar.gz"],
+    urls = ["https://sourceware.org/systemtap/ftp/releases/systemtap-4.2.tar.gz", "https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/systemtap/4.2-3/systemtap_4.2.orig.tar.gz"],
 )
 
 http_archive(
